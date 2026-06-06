@@ -117,20 +117,50 @@ CREATE POLICY "Deny all public access" ON public.sent_notifications FOR ALL USIN
 -- =============================================================================
 -- AUTO-CREATE PROFILE ON SIGNUP
 -- =============================================================================
-CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS trigger
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-BEGIN
-    INSERT INTO public.profiles (id)
-    VALUES (NEW.id);
-    RETURN NEW;
-END;
-$$;
+CREATE
+OR REPLACE FUNCTION public.handle_new_user() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER
+SET
+    search_path = '' AS $ $ BEGIN
+INSERT INTO
+    public.profiles (id)
+VALUES
+    (NEW.id);
 
-CREATE OR REPLACE TRIGGER on_auth_user_created
-    AFTER INSERT ON auth.users
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_new_user();
+RETURN NEW;
+
+END;
+
+$ $;
+
+CREATE
+OR REPLACE TRIGGER on_auth_user_created
+AFTER
+INSERT
+    ON auth.users FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- =============================================================================
+-- TABLE PERMISSIONS (required for Data API access through RLS)
+-- =============================================================================
+GRANT
+SELECT
+,
+UPDATE
+    ON public.profiles TO authenticated;
+
+GRANT
+SELECT
+,
+INSERT
+,
+UPDATE
+,
+    DELETE ON public.birthdays TO authenticated;
+
+GRANT
+SELECT
+,
+INSERT
+    ON public.telegram_linking_tokens TO authenticated;
+
+-- sent_notifications intentionally has no grants — only the service_role
+-- edge function bypasses RLS and writes to it.
