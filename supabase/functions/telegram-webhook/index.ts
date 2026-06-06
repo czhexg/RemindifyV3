@@ -4,9 +4,8 @@
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createAdminClient } from "../_utils/supabase.ts";
 import { sendTelegramMessage } from "../_utils/telegram.ts";
-import { handleStartCommand } from "./handler.ts";
 
 serve(async (req) => {
     if (req.method !== "POST") {
@@ -21,17 +20,22 @@ serve(async (req) => {
     }
 
     const chatId: number = message.chat.id;
-    const supabase = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-    );
+    const supabase = createAdminClient();
 
     if (message.text.startsWith("/start ")) {
-        await handleStartCommand(supabase, chatId, message.text);
+        const token = message.text.split(" ")[1]?.trim();
+        if (!token) {
+            await sendTelegramMessage(
+                chatId,
+                "❌ Missing token. Use /start <token> from the app.",
+            );
+        } else {
+            await handleLinkToken(supabase, chatId, token);
+        }
     } else {
         await sendTelegramMessage(
             chatId,
-            "👋 Send /start <token> to link your account. Get your token from the app settings.",
+            "👋 Send /start <token> to link your account.",
         );
     }
 
@@ -39,8 +43,73 @@ serve(async (req) => {
 });
 
 // ---------------------------------------------------------------------------
-// /start command handler
+// Token linking
 // ---------------------------------------------------------------------------
+
+async function handleLinkToken(
+    supabase: ReturnType<typeof createAdminClient>,
+    chatId: number,
+    token: string,
+): Promise<void> {
+    // Look up token
+    const { data: linkToken, error } = await supabase
+        .from("telegram_linking_tokens")
+        .select("id, user_id, used_at, created_at")
+        .eq("id", token)
+        .single();
+
+    if (error || !linkToken) {
+        await sendTelegramMessage(
+            chatId,
+            "❌ Invalid token. Please generate a new one from the app.",
+        );
+        return;
+    }
+
+    if (linkToken.used_at) {
+        await sendTelegramMessage(
+            chatId,
+            "❌ This token has already been used.",
+        );
+        return;
+    }
+
+    // 15-minute expiry
+    const createdAt = new Date(linkToken.created_at).getTime();
+    if (Date.now() - createdAt > 15 * 60 * 1000) {
+        await sendTelegramMessage(
+            chatId,
+            "⌛ Token expired. Please generate a new one from the app.",
+        );
+        return;
+    }
+
+    // Link profile
+    const { error: updateErr } = await supabase
+        .from("profiles")
+        .update({ telegram_chat_id: chatId })
+        .eq("id", linkToken.user_id);
+
+    if (updateErr) {
+        console.error("Failed to update profile:", updateErr);
+        await sendTelegramMessage(
+            chatId,
+            "❌ Something went wrong. Please try again.",
+        );
+        return;
+    }
+
+    // Mark token used
+    await supabase
+        .from("telegram_linking_tokens")
+        .update({ used_at: new Date().toISOString() })
+        .eq("id", token);
+
+    await sendTelegramMessage(
+        chatId,
+        "✅ Your account is now linked! You'll receive birthday reminders here. 🎂",
+    );
+}
 
 async function handleStartCommand(
     supabase: ReturnType<typeof createClient>,

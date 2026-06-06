@@ -23,6 +23,9 @@ export async function handleStartCommand(
     text: string,
 ): Promise<void> {
     const token = text.split(" ")[1]?.trim();
+    console.log("handleStartCommand — raw text:", text);
+    console.log("handleStartCommand — token:", token);
+
     if (!token) {
         await sendTelegramMessage(
             chatId,
@@ -85,10 +88,14 @@ async function fetchLinkingToken(
     supabase: ReturnType<typeof createClient>,
     token: string,
 ): Promise<LinkingToken | null> {
-    const { data } = await supabase
+    console.log("fetchLinkingToken — searching for token:", token);
+    const { data, error } = await supabase
         .from("telegram_linking_tokens")
         .select("id, user_id, used_at, created_at")
         .eq("id", token)
         .single();
+
+    console.log("fetchLinkingToken — data:", JSON.stringify(data));
+    console.log("fetchLinkingToken — error:", JSON.stringify(error));
     return data;
 }
