@@ -183,7 +183,7 @@ serve(async (req) => {
     // 2. Create admin Supabase client (service_role)
     const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        Deno.env.get("SUPABASE_SECRET_KEY")!,
     );
 
     // 3. Get all users with notifications enabled and birthdays
@@ -257,7 +257,7 @@ serve(async (req) => {
 
     const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+        Deno.env.get("SUPABASE_SECRET_KEY")!,
     );
 
     if (body.message?.text?.startsWith("/start ")) {
