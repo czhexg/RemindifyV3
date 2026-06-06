@@ -9,7 +9,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useProfile, useUpdateProfile, type Profile } from "@/hooks/useProfile";
+import { useProfile, useUpdateProfile } from "@/hooks/useProfile";
 
 // ---------------------------------------------------------------------------
 // Curated timezone list
@@ -96,7 +96,7 @@ export function NotificationForm() {
                     min={0}
                     max={30}
                     value={daysBefore}
-                    onChange={(e) =>
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                         setDaysBefore(parseInt(e.target.value, 10) || 0)
                     }
                 />
@@ -145,9 +145,9 @@ export function NotificationForm() {
                             type="email"
                             placeholder="Uses your account email if blank"
                             value={notificationEmail}
-                            onChange={(e) =>
-                                setNotificationEmail(e.target.value)
-                            }
+                            onChange={(
+                                e: React.ChangeEvent<HTMLInputElement>,
+                            ) => setNotificationEmail(e.target.value)}
                         />
                     </div>
                 )}

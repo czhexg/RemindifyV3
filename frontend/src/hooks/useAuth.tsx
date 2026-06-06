@@ -1,4 +1,10 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+    createContext,
+    useContext,
+    useEffect,
+    useState,
+    type ReactNode,
+} from "react";
 import { supabase } from "@/lib/supabaseClient";
 import type { Session, User } from "@supabase/supabase-js";
 
@@ -36,7 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return () => subscription.unsubscribe();
     }, []);
 
-    const signOut = () => supabase.auth.signOut();
+    const signOut = () => supabase.auth.signOut().then(() => {});
 
     return (
         <AuthContext.Provider value={{ session, user, loading, signOut }}>
